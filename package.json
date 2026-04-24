@@ -3,7 +3,15 @@
   "displayName": "Ansible Runner",
   "description": "Run Ansible playbooks from a sidebar tree view",
   "version": "0.1.0",
-  "publisher": "skurtz",
+  "publisher": "skurtz97",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skurtz97/ansible-runner"
+  },
+  "license": "MIT",
+
+
+
   "engines": {
     "vscode": "^1.105.0"
   },
