@@ -6,6 +6,8 @@ Ansible Runner adds a sidebar panel to VSCode that automatically detects playboo
 in your workspace and lets you run, dry-run, or run with verbose output directly
 from the UI.
 
+![Ansible Runner sidebar showing detected playbooks](media/screenshots/sidebar.png)
+
 ## Features
 
 - Automatically detects playbooks by scanning for `.yml` files containing `tasks:` or `import_playbook`
@@ -32,8 +34,12 @@ in the activity bar. Click it to open the sidebar.
 **Running a playbook:**
 Expand a playbook in the sidebar and click `Run` or `Run Verbose`.
 
+![Expanding a playbook shows Run and Run Verbose actions](media/screenshots/sidebar.png)
+
 **Dry running a playbook:**
 Right-click a playbook and select `Dry Run Playbook`.
+
+![Right-click context menu showing Dry Run option](media/screenshots/context-menu.png)
 
 **Changing the inventory file:**
 Either let the extension auto-detect `inventory.yml` in your workspace root, or
@@ -52,6 +58,9 @@ set it explicitly in your workspace settings:
   "ansibleRunner.extraFlags": ["--diff"]
 }
 ```
+
+
+![Ansible Runner output channel streaming playbook output](media/screenshots/output.png)
 
 ## Extension Settings
 
