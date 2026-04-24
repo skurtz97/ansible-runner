@@ -59,13 +59,12 @@ set it explicitly in your workspace settings:
 }
 ```
 
-
 ![Ansible Runner output channel streaming playbook output](media/screenshots/output.png)
 
 ## Extension Settings
 
 | Setting | Type | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ansibleRunner.inventory` | string | `""` | Path to inventory file. Leave empty to auto-detect `inventory.yml` in workspace root. |
 | `ansibleRunner.extraFlags` | array | `[]` | Extra flags passed to `ansible-playbook` on every run. |
 
