@@ -5,11 +5,15 @@
         "target": "es2022",
         "outDir": "./out",
         "rootDir": "./src",
-        "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "sourceMap": true,
-        "types": ["node"]
+        "types": ["node"],
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "noImplicitOverride": true
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules", ".vscode-test"]

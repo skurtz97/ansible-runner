@@ -42,7 +42,11 @@ export class Runner {
         ];
 
         const displayName = path.basename(playbookPath);
-        const flagSummary = extraFlags.length > 0 ? ` (${extraFlags.join(' ')})` : '';
+
+        /* Mask the password */
+        const displayFlags = extraFlags.map(f => f.startsWith('ansible_become_pass=') ? 'ansible_become_pass=********' : f);
+        const flagSummary = displayFlags.length > 0 ? ` (${displayFlags.join(' ')})` : '';
+        const displayArgs = args.map(arg => arg.startsWith('ansible_become_pass=') ? 'ansible_become_pass=********' : arg);
 
         this.outputChannel.show(true);
         this.outputChannel.appendLine('');

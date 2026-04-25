@@ -83,6 +83,11 @@ export class PlaybookProvider implements vscode.TreeDataProvider<vscode.TreeItem
                 title: 'Run',
                 arguments: [playbook]
             }, 'play'),
+            new PlaybookActionItem('Run with Sudo', {
+                command: 'ansibleRunner.runWithSudo',
+                title: 'Run with sudo',
+                arguments: [playbook]
+            }, 'shield'),
             new PlaybookActionItem('Run Verbose', {
                 command: 'ansibleRunner.runVerbose',
                 title: 'Run Verbose',
