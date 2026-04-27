@@ -1,6 +1,6 @@
 # Ansible Runner
 
-A VSCode extension that makes running Ansible playbooks as simple as clicking a button.
+A VSCode extension that makes running Ansible playbooks as simple as clicking a button, a feature that is not included in the official Ansible extension that mostly just provides an LSP and some scaffolding help. 
 
 Ansible Runner adds a sidebar panel to VSCode that automatically detects playbooks
 in your workspace and lets you run, dry-run, or run with verbose output directly
