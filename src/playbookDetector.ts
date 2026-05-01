@@ -19,7 +19,7 @@ export class PlaybookDetector {
             return [];
         }
 
-        const rootPath = workspaceFolders[0].uri.fsPath;
+        const rootPath = workspaceFolders[0]!.uri.fsPath;
         const yamlFiles = await this.scanDirectory(rootPath);
         const playbooks: string[] = [];
 

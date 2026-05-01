@@ -20,7 +20,7 @@ export class InventoryDetector {
             return undefined;
         }
 
-        const rootPath = workspaceFolders[0].uri.fsPath;
+        const rootPath = workspaceFolders[0]!.uri.fsPath;
         const candidatePath = path.join(rootPath, 'inventory.yml');
 
         try {
@@ -38,7 +38,7 @@ export class InventoryDetector {
             });
 
             if (result && result.length > 0){
-                this.inventory = result[0].fsPath;
+                this.inventory = result[0]!.fsPath;
                 // Offer to save it to workspace settings so they aren't
                 // prompted again.
                 const save = await vscode.window.showInformationMessage(

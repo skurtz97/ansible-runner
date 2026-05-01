@@ -30,7 +30,7 @@ export class Runner {
             return;
         }
 
-        const cwd = workspaceFolders[0].uri.fsPath;
+        const cwd = workspaceFolders[0]!.uri.fsPath;
         const config = vscode.workspace.getConfiguration('ansibleRunner');
         const configuredExtraFlags = config.get<string[]>('extraFlags') ?? [];
 
@@ -81,15 +81,15 @@ export class Runner {
             process.on('close', (code: number | null) => {
                 this.outputChannel.appendLine('─'.repeat(60));
                 if (code === 0) {
-                    this.outputChannel.appendLine(`✓ ${path.basename(args[args.length - 1])} completed successfully`);
+                    this.outputChannel.appendLine(`✓ ${path.basename(args[args.length - 1]!)} completed successfully`);
                     vscode.window.showInformationMessage(
-                        `Ansible Runner: ${path.basename(args[args.length - 1])} completed successfully.`
+                        `Ansible Runner: ${path.basename(args[args.length - 1]!)} completed successfully.`
                     );
                     resolve();
                 } else {
                     this.outputChannel.appendLine(`✗ Failed with exit code ${code}`);
                     vscode.window.showErrorMessage(
-                        `Ansible Runner: ${path.basename(args[args.length - 1])} failed with exit code ${code}.`
+                        `Ansible Runner: ${path.basename(args[args.length - 1]!)} failed with exit code ${code}.`
                     );
                     reject(new Error(`Process exited with code ${code}`));
                 }

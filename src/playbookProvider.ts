@@ -4,9 +4,9 @@ import { PlaybookDetector } from './playbookDetector.js';
 
 export class PlaybookItem extends vscode.TreeItem {
     constructor(
-        public readonly label: string,
-        public readonly resourceUri: vscode.Uri,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState
+        public override readonly label: string,
+        public override readonly resourceUri: vscode.Uri,
+        public override readonly collapsibleState: vscode.TreeItemCollapsibleState
     ) {
         super(label, collapsibleState);
         this.contextValue = 'playbook';
@@ -17,8 +17,8 @@ export class PlaybookItem extends vscode.TreeItem {
 
 export class PlaybookActionItem extends vscode.TreeItem {
     constructor(
-        public readonly label: string,
-        public readonly command: vscode.Command,
+        public override readonly label: string,
+        public override readonly command: vscode.Command,
         public readonly iconId: string
     ) {
         super(label, vscode.TreeItemCollapsibleState.None);
@@ -102,7 +102,7 @@ export class PlaybookProvider implements vscode.TreeDataProvider<vscode.TreeItem
             return path.basename(filePath);
         }
 
-        const rootPath = workspaceFolders[0].uri.fsPath;
+        const rootPath = workspaceFolders[0]!.uri.fsPath;
         const relative = path.relative(rootPath, filePath);
 
         // If the file is directly in the root, just show the filename

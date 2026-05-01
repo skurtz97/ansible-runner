@@ -1,0 +1,263 @@
+From 1791e3ade84a462667dbc52186f268f424d8580f Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Fri, 1 May 2026 06:55:46 +0000
+Subject: [PATCH] Fix TypeScript strict-mode errors; add release Makefile
+
+- Add 'override' modifiers to TreeItem subclass parameter properties
+  in playbookProvider.ts (required by noImplicitOverride)
+- Add non-null assertions on array accesses already guarded by length
+  checks above (required by noUncheckedIndexedAccess) in
+  inventoryDetector.ts, playbookDetector.ts, playbookProvider.ts,
+  runner.ts
+- Add Makefile to .vscodeignore so it isn't bundled into the .vsix
+- Add release Makefile with 'gh'-CLI-based release flow:
+  make release-current / release-patch / release-minor / release-major
+---
+ .vscodeignore            |   1 +
+ Makefile                 | 117 +++++++++++++++++++++++++++++++++++++++
+ src/inventoryDetector.ts |   4 +-
+ src/playbookDetector.ts  |   2 +-
+ src/playbookProvider.ts  |  12 ++--
+ src/runner.ts            |   8 +--
+ 6 files changed, 131 insertions(+), 13 deletions(-)
+ create mode 100644 Makefile
+
+diff --git a/.vscodeignore b/.vscodeignore
+index 89680b7..89373d2 100644
+--- a/.vscodeignore
++++ b/.vscodeignore
+@@ -4,3 +4,4 @@ node_modules/
+ tsconfig.json
+ .gitignore
+ *.map
++Makefile
+diff --git a/Makefile b/Makefile
+new file mode 100644
+index 0000000..95a6d5b
+--- /dev/null
++++ b/Makefile
+@@ -0,0 +1,117 @@
++# Ansible Runner — release Makefile
++#
++# Requires:
++#   - node + npm
++#   - git (with push access to origin)
++#   - gh CLI, authenticated (`gh auth login`)
++#
++# Typical flows:
++#   make release-current   # release whatever version is in package.json (use for first release)
++#   make release-patch     # 0.1.0 -> 0.1.1, tag, push, build, publish
++#   make release-minor     # 0.1.0 -> 0.2.0, ...
++#   make release-major     # 0.1.0 -> 1.0.0, ...
++#
++# Each release-* target:
++#   1. Verifies working tree is clean and gh is ready
++#   2. (release-patch/minor/major) bumps version via `npm version`, which also commits + tags
++#   3. Builds the .vsix with `vsce package`
++#   4. Pushes the commit and tag to origin
++#   5. Creates a GitHub Release with auto-generated notes and the .vsix attached
++
++SHELL := /bin/bash
++
++# Re-evaluated every make invocation, so post-bump sub-makes pick up the new version.
++VERSION := $(shell node -p "require('./package.json').version" 2>/dev/null)
++NAME    := $(shell node -p "require('./package.json').name" 2>/dev/null)
++VSIX    := $(NAME)-$(VERSION).vsix
++TAG     := v$(VERSION)
++BRANCH  := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
++
++.DEFAULT_GOAL := help
++
++.PHONY: help
++help: ## Show available targets
++	@echo "Ansible Runner — release targets"
++	@echo ""
++	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
++		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
++	@echo ""
++	@echo "Current: $(NAME) $(VERSION)  (would tag $(TAG) on branch $(BRANCH))"
++
++.PHONY: install
++install: ## npm install
++	npm install
++
++.PHONY: compile
++compile: ## tsc compile to out/
++	npm run compile
++
++.PHONY: package
++package: compile ## Build the .vsix for the current version
++	npx vsce package
++	@echo "Built $(VSIX)"
++
++.PHONY: clean
++clean: ## Remove build artifacts (out/ and *.vsix)
++	rm -rf out
++	rm -f *.vsix
++
++# ---------- guards ----------
++
++.PHONY: check-clean-tree
++check-clean-tree:
++	@if [ -n "$$(git status --porcelain)" ]; then \
++		echo "ERROR: working tree is dirty. Commit or stash first."; \
++		git status --short; \
++		exit 1; \
++	fi
++
++.PHONY: check-gh
++check-gh:
++	@command -v gh >/dev/null 2>&1 || { \
++		echo "ERROR: gh CLI not installed. https://cli.github.com/"; exit 1; }
++	@gh auth status >/dev/null 2>&1 || { \
++		echo "ERROR: gh CLI not authenticated. Run: gh auth login"; exit 1; }
++
++# ---------- release internals ----------
++
++# Tag (if missing), build, push, publish the release for the CURRENT package.json version.
++# Called by both release-current (no bump) and release-{patch,minor,major} (after npm version).
++.PHONY: _publish
++_publish: check-gh package
++	@if ! git rev-parse $(TAG) >/dev/null 2>&1; then \
++		echo "Creating tag $(TAG)..."; \
++		git tag -a $(TAG) -m "Release $(TAG)"; \
++	else \
++		echo "Tag $(TAG) already exists locally, reusing."; \
++	fi
++	@echo "Pushing $(BRANCH) and $(TAG) to origin..."
++	git push origin $(BRANCH)
++	git push origin $(TAG)
++	@echo "Publishing GitHub release $(TAG)..."
++	gh release create $(TAG) $(VSIX) \
++		--title "$(TAG)" \
++		--generate-notes
++	@echo ""
++	@echo "Done. Released $(TAG) with $(VSIX)."
++
++# ---------- public release targets ----------
++
++.PHONY: release-current
++release-current: check-clean-tree _publish ## Release current package.json version (no bump). Use for first release.
++
++# Sub-make for _publish so VERSION/VSIX/TAG re-read after `npm version` rewrites package.json.
++.PHONY: release-patch
++release-patch: check-clean-tree check-gh ## Bump patch (0.1.0 -> 0.1.1) and release
++	npm version patch -m "Release v%s"
++	@$(MAKE) --no-print-directory _publish
++
++.PHONY: release-minor
++release-minor: check-clean-tree check-gh ## Bump minor (0.1.0 -> 0.2.0) and release
++	npm version minor -m "Release v%s"
++	@$(MAKE) --no-print-directory _publish
++
++.PHONY: release-major
++release-major: check-clean-tree check-gh ## Bump major (0.1.0 -> 1.0.0) and release
++	npm version major -m "Release v%s"
++	@$(MAKE) --no-print-directory _publish
+diff --git a/src/inventoryDetector.ts b/src/inventoryDetector.ts
+index cfea09d..9bb643d 100644
+--- a/src/inventoryDetector.ts
++++ b/src/inventoryDetector.ts
+@@ -20,7 +20,7 @@ export class InventoryDetector {
+             return undefined;
+         }
+ 
+-        const rootPath = workspaceFolders[0].uri.fsPath;
++        const rootPath = workspaceFolders[0]!.uri.fsPath;
+         const candidatePath = path.join(rootPath, 'inventory.yml');
+ 
+         try {
+@@ -38,7 +38,7 @@ export class InventoryDetector {
+             });
+ 
+             if (result && result.length > 0){
+-                this.inventory = result[0].fsPath;
++                this.inventory = result[0]!.fsPath;
+                 // Offer to save it to workspace settings so they aren't
+                 // prompted again.
+                 const save = await vscode.window.showInformationMessage(
+diff --git a/src/playbookDetector.ts b/src/playbookDetector.ts
+index f35276b..cdd0214 100644
+--- a/src/playbookDetector.ts
++++ b/src/playbookDetector.ts
+@@ -19,7 +19,7 @@ export class PlaybookDetector {
+             return [];
+         }
+ 
+-        const rootPath = workspaceFolders[0].uri.fsPath;
++        const rootPath = workspaceFolders[0]!.uri.fsPath;
+         const yamlFiles = await this.scanDirectory(rootPath);
+         const playbooks: string[] = [];
+ 
+diff --git a/src/playbookProvider.ts b/src/playbookProvider.ts
+index ce1b686..0c779a8 100644
+--- a/src/playbookProvider.ts
++++ b/src/playbookProvider.ts
+@@ -4,9 +4,9 @@ import { PlaybookDetector } from './playbookDetector.js';
+ 
+ export class PlaybookItem extends vscode.TreeItem {
+     constructor(
+-        public readonly label: string,
+-        public readonly resourceUri: vscode.Uri,
+-        public readonly collapsibleState: vscode.TreeItemCollapsibleState
++        public override readonly label: string,
++        public override readonly resourceUri: vscode.Uri,
++        public override readonly collapsibleState: vscode.TreeItemCollapsibleState
+     ) {
+         super(label, collapsibleState);
+         this.contextValue = 'playbook';
+@@ -17,8 +17,8 @@ export class PlaybookItem extends vscode.TreeItem {
+ 
+ export class PlaybookActionItem extends vscode.TreeItem {
+     constructor(
+-        public readonly label: string,
+-        public readonly command: vscode.Command,
++        public override readonly label: string,
++        public override readonly command: vscode.Command,
+         public readonly iconId: string
+     ) {
+         super(label, vscode.TreeItemCollapsibleState.None);
+@@ -102,7 +102,7 @@ export class PlaybookProvider implements vscode.TreeDataProvider<vscode.TreeItem
+             return path.basename(filePath);
+         }
+ 
+-        const rootPath = workspaceFolders[0].uri.fsPath;
++        const rootPath = workspaceFolders[0]!.uri.fsPath;
+         const relative = path.relative(rootPath, filePath);
+ 
+         // If the file is directly in the root, just show the filename
+diff --git a/src/runner.ts b/src/runner.ts
+index 50673ff..fde0f1c 100644
+--- a/src/runner.ts
++++ b/src/runner.ts
+@@ -30,7 +30,7 @@ export class Runner {
+             return;
+         }
+ 
+-        const cwd = workspaceFolders[0].uri.fsPath;
++        const cwd = workspaceFolders[0]!.uri.fsPath;
+         const config = vscode.workspace.getConfiguration('ansibleRunner');
+         const configuredExtraFlags = config.get<string[]>('extraFlags') ?? [];
+ 
+@@ -81,15 +81,15 @@ export class Runner {
+             process.on('close', (code: number | null) => {
+                 this.outputChannel.appendLine('─'.repeat(60));
+                 if (code === 0) {
+-                    this.outputChannel.appendLine(`✓ ${path.basename(args[args.length - 1])} completed successfully`);
++                    this.outputChannel.appendLine(`✓ ${path.basename(args[args.length - 1]!)} completed successfully`);
+                     vscode.window.showInformationMessage(
+-                        `Ansible Runner: ${path.basename(args[args.length - 1])} completed successfully.`
++                        `Ansible Runner: ${path.basename(args[args.length - 1]!)} completed successfully.`
+                     );
+                     resolve();
+                 } else {
+                     this.outputChannel.appendLine(`✗ Failed with exit code ${code}`);
+                     vscode.window.showErrorMessage(
+-                        `Ansible Runner: ${path.basename(args[args.length - 1])} failed with exit code ${code}.`
++                        `Ansible Runner: ${path.basename(args[args.length - 1]!)} failed with exit code ${code}.`
+                     );
+                     reject(new Error(`Process exited with code ${code}`));
+                 }
+-- 
+2.43.0
+
